@@ -44,7 +44,7 @@
     ```bash
         dotnet ef database update
 
-### Database Migration
+### Running Locally
   1. Restore dependencies:
       ```bash
         dotnet restore
@@ -54,7 +54,8 @@
   3. Access the API: Visit the Swagger documentation at:
      ```bash
       http://localhost:5000/swagger
-### Database Migration
+### Docker Deployment
+
   1. Build the Docker image:
       ```bash
         docker build -t simplytrack-api .
@@ -65,7 +66,7 @@
        ```bash
       http://localhost:8060/swagger
 
-### Technologies Used
+## Technologies Used
 - .NET 8: For building the backend.
 
 - MariaDB: Database management.
