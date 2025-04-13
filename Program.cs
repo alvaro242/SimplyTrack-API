@@ -1,4 +1,10 @@
+using Microsoft.EntityFrameworkCore; 
+using DotNetEnv;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Load environment variables from .env file
+DotNetEnv.Env.Load();
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -7,12 +13,16 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+/*
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+*/
+    // run swagger in all environments even production
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
