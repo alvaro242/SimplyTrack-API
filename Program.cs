@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore; 
+using SimplyTrack_API.Data;
 using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +20,7 @@ var connectionString = $"Server={server};Database={database};User Id={user};Pass
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddControllers();
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))); // Pomelo detects the MariaDB version automatically
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
