@@ -1,4 +1,9 @@
 .env
 /bin/
-/obj/
 /obj
+/.vs
+obj/project.assets.json
+obj/project.nuget.cache
+obj/SimplyTrack-API.csproj.nuget.dgspec.json
+obj/SimplyTrack-API.csproj.nuget.g.props
+obj/SimplyTrack-API.csproj.nuget.g.targets
