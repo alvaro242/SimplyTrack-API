@@ -6,8 +6,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Load environment variables from .env file
 DotNetEnv.Env.Load();
 
+// Dynamically construct the connection string
+var server = Environment.GetEnvironmentVariable("DB_SERVER");
+var database = Environment.GetEnvironmentVariable("DB_DATABASE");
+var user = Environment.GetEnvironmentVariable("DB_USER");
+var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
+
+var connectionString = $"Server={server};Database={database};User Id={user};Password={password};";
+
+
+
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddControllers();
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))); // Pomelo detects the MariaDB version automatically
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -24,7 +37,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+    // Configure the middleware pipeline
+    app.MapControllers();
+    app.UseHttpsRedirection();
 
 var summaries = new[]
 {
