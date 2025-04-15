@@ -1,24 +1,21 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SimplyTrack_API.Models;
 
 namespace SimplyTrack_API.Data
 {
-
-
-
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<User> // Inherit from IdentityDbContext with your custom User model
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         // Define your database tables (DbSets)
-         public DbSet<User> Users { get; set; }
         public DbSet<Workout> Workouts { get; set; }
         public DbSet<Exercise> Exercises { get; set; }
         public DbSet<WeightProgression> WeightProgressions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(modelBuilder); // Ensure Identity configurations are applied
 
             // Unique Email
             modelBuilder.Entity<User>()
