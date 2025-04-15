@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore; 
 using SimplyTrack_API.Data;
-using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 

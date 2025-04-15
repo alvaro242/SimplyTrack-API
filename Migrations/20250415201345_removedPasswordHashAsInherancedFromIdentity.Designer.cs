@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SimplyTrack_API.Data;
 
@@ -11,9 +12,11 @@ using SimplyTrack_API.Data;
 namespace SimplyTrack_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250415201345_removedPasswordHashAsInherancedFromIdentity")]
+    partial class removedPasswordHashAsInherancedFromIdentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -185,7 +188,7 @@ namespace SimplyTrack_API.Migrations
 
                     b.HasIndex("WorkoutId");
 
-                    b.ToTable("Exercises", (string)null);
+                    b.ToTable("Exercises");
                 });
 
             modelBuilder.Entity("SimplyTrack_API.Models.User", b =>
@@ -284,7 +287,7 @@ namespace SimplyTrack_API.Migrations
 
                     b.HasIndex("ExerciseId");
 
-                    b.ToTable("WeightProgressions", (string)null);
+                    b.ToTable("WeightProgressions");
                 });
 
             modelBuilder.Entity("SimplyTrack_API.Models.Workout", b =>
@@ -313,7 +316,7 @@ namespace SimplyTrack_API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Workouts", (string)null);
+                    b.ToTable("Workouts");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
