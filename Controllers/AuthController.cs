@@ -14,31 +14,25 @@ namespace SimplyTrack_API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
-        private readonly SignInManager<User> _signInManager;
         private readonly IConfiguration _configuration;
 
         public AuthController(UserManager<User> userManager, SignInManager<User> signInManager, IConfiguration configuration)
         {
             _userManager = userManager;
-            _signInManager = signInManager;
             _configuration = configuration;
         }
 
         [HttpPost("signup")]
         public async Task<IActionResult> SignUp([FromBody] RegisterModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var user = new User
+           var user = new User 
             {
-                UserName = model.Email,
+                UserName = model.Name,
                 Email = model.Email,
-                Name = model.Name
+                EmailConfirmed = true // Set to true if you want to confirm the email automatically
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
-
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
@@ -48,45 +42,37 @@ namespace SimplyTrack_API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null || string.IsNullOrEmpty(user.UserName))
+            if (user == null)
                 return Unauthorized("Invalid email or password");
 
-            var result = await _signInManager.PasswordSignInAsync(user.UserName, model.Password, false, false);
-            if (!result.Succeeded)
+            var result = await _userManager.CheckPasswordAsync(user, model.Password);
+            if (!result)
                 return Unauthorized("Invalid email or password");
 
-            var authClaims = new[]
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(ClaimTypes.Email, user.Email)
+                }),
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
-            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                expires: DateTime.Now.AddHours(3),
-                claims: authClaims,
-                signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-            );
-
-            return Ok(new
-            {
-                token = new JwtSecurityTokenHandler().WriteToken(token),
-                expiration = token.ValidTo
-            });
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return Ok(new { Token = tokenHandler.WriteToken(token) });
         }
 
         [HttpPost("logout")]
         [Authorize]
         public async Task<IActionResult> Logout()
         {
-            await _signInManager.SignOutAsync();
+            // Invalidate the token (if using a token-based authentication system, you might want to implement token revocation)
             return Ok("User logged out successfully");
         }
     }
@@ -103,4 +89,6 @@ namespace SimplyTrack_API.Controllers
         public string Email { get; set; }
         public string Password { get; set; }
     }
+
+    
 }
