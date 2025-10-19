@@ -6,8 +6,8 @@ namespace SimplyTrack.Api.Models
     {
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
-        public string ExerciseId { get; set; }
-        public Exercise Exercise { get; set; }
+        public string ExerciseId { get; set; } = string.Empty;
+        public Exercise? Exercise { get; set; }
 
         // store date as DateTime (date-only semantics)
         public DateTime Date { get; set; }
