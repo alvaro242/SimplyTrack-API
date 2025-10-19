@@ -1,27 +1,20 @@
-using System;
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
-namespace SimplyTrack_API.Models
+namespace SimplyTrack.Api.Models
 {
     public class Exercise
     {
-        public int Id { get; set; }
-
-        public int WorkoutId { get; set; }
-
+        [Key]
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        
+        // User ownership - nullable for shared/global templates
+        public string? UserId { get; set; }
+        public ApplicationUser? User { get; set; }
+        
         public string Name { get; set; } = string.Empty;
-
-        public int Reps { get; set; }
-
-        public int Sets { get; set; }
-
-        public double Weight { get; set; }
-
+        public string? Description { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation
-        public Workout? Workout { get; set; }
-
-        public ICollection<WeightProgression> WeightProgressions { get; set; } = new List<WeightProgression>();
+        public ICollection<Session> Sessions { get; set; } = new List<Session>();
     }
 }

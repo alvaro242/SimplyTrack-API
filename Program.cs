@@ -1,106 +1,138 @@
-using Microsoft.EntityFrameworkCore; 
-using SimplyTrack_API.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Identity;
+using System;
 using System.Text;
-using SimplyTrack_API.Models;
-
-var builder = WebApplication.CreateBuilder(args);
+using ApplicationDBContext.Api.Data;
+using SimplyTrack.Api.Models;
+using SimplyTrack.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using DotNetEnv;
 
 // Load environment variables from .env file
-DotNetEnv.Env.Load();
+Env.Load();
 
-// Dynamically construct the connection string
-var server = Environment.GetEnvironmentVariable("DB_SERVER");
-var database = Environment.GetEnvironmentVariable("DB_DATABASE");
-var user = Environment.GetEnvironmentVariable("DB_USER");
-var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
+var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration;
 
-var connectionString = $"Server={server};Database={database};User Id={user};Password={password};";
+// --- Read DB config from environment variables (fall back to appsettings.json) ---
+string dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? configuration.GetValue<string>("ConnectionStrings:Host") ?? "localhost";
+string dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? configuration.GetValue<string>("ConnectionStrings:Port") ?? "3306";
+string dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? configuration.GetValue<string>("ConnectionStrings:Database") ?? "simplytrack";
+string dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? configuration.GetValue<string>("ConnectionStrings:User") ?? "root";
+string dbPass = Environment.GetEnvironmentVariable("DB_PASS") ?? configuration.GetValue<string>("ConnectionStrings:Password") ?? "Your_password";
 
-// Add Identity services
-builder.Services.AddIdentity<User, IdentityRole>(options => {
-    options.User.RequireUniqueEmail = true; // Ensure unique email addresses
-    options.Password.RequiredLength = 10
-    ; // Minimum password length
-    options.Password.RequireDigit = true; // Require at least one digit
-    options.Password.RequireLowercase = true; // Require at least one lowercase letter
-    options.Password.RequireUppercase = true; // Require at least one uppercase letter
-    options.Password.RequireNonAlphanumeric = true; // special characters required
-})
-    .AddEntityFrameworkStores<AppDbContext>()
+// Build connection string expected by Pomelo / MySql
+var conn = $"server={dbHost};port={dbPort};database={dbName};user={dbUser};password={dbPass};";
+
+// Add DB context (MariaDB / Pomelo)
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseMySql(conn, ServerVersion.AutoDetect(conn)));
+
+// --- Read JWT config from environment variables (fall back to appsettings.json) ---
+string jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? configuration["Jwt:Key"];
+string jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? configuration["Jwt:Issuer"];
+string jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? configuration["Jwt:Audience"];
+string accessTokenMinutesStr = Environment.GetEnvironmentVariable("ACCESS_TOKEN_EXPIRATION_MINUTES") ?? configuration["Jwt:AccessTokenExpirationMinutes"];
+string refreshTokenDaysStr = Environment.GetEnvironmentVariable("REFRESH_TOKEN_DAYS") ?? configuration["Jwt:RefreshTokenDays"];
+
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new InvalidOperationException("JWT_KEY must be provided via environment variable or appsettings.json.");
+}
+
+if (!int.TryParse(accessTokenMinutesStr, out var accessTokenMinutes))
+    accessTokenMinutes = 15;
+
+if (!int.TryParse(refreshTokenDaysStr, out var refreshTokenDays))
+    refreshTokenDays = 30;
+
+var jwtKeyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
+// Identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 6;
+    })
+    .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// Configure JWT authentication
+// JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
+})
+.AddJwtBearer(options =>
 {
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
         ValidateAudience = true,
-        ValidateLifetime = true,
+        ValidAudience = jwtAudience,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(jwtKeyBytes),
+        ClockSkew = TimeSpan.FromSeconds(30),
+        ValidateLifetime = true
     };
 });
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddAuthorization();
 builder.Services.AddControllers();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))); // Pomelo detects the MariaDB version automatically
+
+// Make Access/Refresh lifetime available to services via configuration or DI if needed
+builder.Services.Configure<JwtOptions>(options =>
+{
+    options.Key = jwtKey;
+    options.Issuer = jwtIssuer;
+    options.Audience = jwtAudience;
+    options.AccessTokenExpirationMinutes = accessTokenMinutes;
+    options.RefreshTokenDays = refreshTokenDays;
+});
+
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IExerciseService, ExerciseService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<ISetService, SetService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-app.UseAuthentication();
-app.UseAuthorization();
 
-/*
+// Apply EF Core migrations at startup (optional convenience)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-*/
-    // run swagger in all environments even production
-    app.UseSwagger();
-    app.UseSwaggerUI();
 
-    // Configure the middleware pipeline
-    app.MapControllers();
-    app.UseHttpsRedirection();
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+app.MapControllers();
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+// Simple POCO used for DI configuration of JWT settings
+public class JwtOptions
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    public string Key { get; set; } = default!;
+    public string Issuer { get; set; } = default!;
+    public string Audience { get; set; } = default!;
+    public int AccessTokenExpirationMinutes { get; set; }
+    public int RefreshTokenDays { get; set; }
 }
