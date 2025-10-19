@@ -12,8 +12,9 @@ namespace SimplyTrack_API.Models
         [Required]
         public string Name { get; set; } = string.Empty;
 
-        [Required, EmailAddress]
-        public new string Email { get; set; } = string.Empty;
+        //I believe this is not needed as IdentityUser already has an Email property
+      //  [Required, EmailAddress]
+      //  public new string Email { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
