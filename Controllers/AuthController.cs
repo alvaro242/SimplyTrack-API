@@ -8,8 +8,13 @@ using System.Security.Claims;
 
 namespace SimplyTrack.Api.Controllers
 {
+    /// <summary>
+    /// Authentication controller for user registration, login, token refresh, and logout operations
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Tags("Authentication")]
     public class AuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -29,7 +34,17 @@ namespace SimplyTrack.Api.Controllers
             _refreshTokenRepository = refreshTokenRepository;
         }
 
+        /// <summary>
+        /// Register a new user account
+        /// </summary>
+        /// <param name="request">User registration details</param>
+        /// <returns>Authentication response with access and refresh tokens</returns>
+        /// <response code="200">User successfully registered and authenticated</response>
+        /// <response code="400">Invalid input or user already exists</response>
         [HttpPost("register")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorDto), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request)
         {
             if (!ModelState.IsValid)
@@ -82,7 +97,19 @@ namespace SimplyTrack.Api.Controllers
             return CreatedAtAction(nameof(Register), response);
         }
 
+        /// <summary>
+        /// Authenticate user and obtain access and refresh tokens
+        /// </summary>
+        /// <param name="request">User login credentials</param>
+        /// <returns>Authentication response with access and refresh tokens</returns>
+        /// <response code="200">User successfully authenticated</response>
+        /// <response code="400">Invalid input data</response>
+        /// <response code="401">Invalid credentials</response>
         [HttpPost("login")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorDto), StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
         {
             if (!ModelState.IsValid)
@@ -124,7 +151,17 @@ namespace SimplyTrack.Api.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Refresh access token using a valid refresh token
+        /// </summary>
+        /// <param name="request">Refresh token request containing the current refresh token</param>
+        /// <returns>New authentication tokens</returns>
+        /// <response code="200">Tokens successfully refreshed</response>
+        /// <response code="400">Invalid or expired refresh token</response>
         [HttpPost("refresh")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorDto), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenRequestDto request)
         {
             var ipAddress = GetIpAddress();
@@ -162,11 +199,20 @@ namespace SimplyTrack.Api.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// Logout user and revoke refresh tokens
+        /// </summary>
+        /// <param name="request">Optional refresh token to revoke specifically</param>
+        /// <returns>Success response</returns>
+        /// <response code="200">Successfully logged out</response>
+        /// <response code="401">Unauthorized - invalid or missing access token</response>
         [HttpPost("logout")]
         [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult> Logout([FromBody] RefreshTokenRequestDto? request = null)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (userId == null)
                 return Unauthorized();
 
@@ -191,7 +237,7 @@ namespace SimplyTrack.Api.Controllers
         [Authorize]
         public async Task<ActionResult> RevokeToken([FromBody] RefreshTokenRequestDto request)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (userId == null)
                 return Unauthorized();
 

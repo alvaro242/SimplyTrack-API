@@ -6,9 +6,14 @@ using System.Security.Claims;
 
 namespace SimplyTrack.Api.Controllers
 {
+    /// <summary>
+    /// Set management controller for individual exercise set operations
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
+    [Produces("application/json")]
+    [Tags("Set Management")]
     public class SetsController : ControllerBase
     {
         private readonly ISetService _setService;
@@ -18,7 +23,21 @@ namespace SimplyTrack.Api.Controllers
             _setService = setService;
         }
 
+        /// <summary>
+        /// Update an existing exercise set
+        /// </summary>
+        /// <param name="setId">The unique identifier of the set to update</param>
+        /// <param name="request">Set update data including reps, weight, and order</param>
+        /// <returns>Updated set details</returns>
+        /// <response code="200">Set updated successfully</response>
+        /// <response code="400">Invalid input data</response>
+        /// <response code="401">Unauthorized - invalid or missing access token</response>
+        /// <response code="404">Set not found or doesn't belong to current user</response>
         [HttpPatch("{setId}")]
+        [ProducesResponseType(typeof(SetDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<SetDto>> UpdateSet(string setId, [FromBody] UpdateSetDto request)
         {
             if (!ModelState.IsValid)
@@ -44,7 +63,18 @@ namespace SimplyTrack.Api.Controllers
             return Ok(setDto);
         }
 
+        /// <summary>
+        /// Delete an exercise set
+        /// </summary>
+        /// <param name="setId">The unique identifier of the set to delete</param>
+        /// <returns>No content on successful deletion</returns>
+        /// <response code="204">Set deleted successfully</response>
+        /// <response code="401">Unauthorized - invalid or missing access token</response>
+        /// <response code="404">Set not found or doesn't belong to current user</response>
         [HttpDelete("{setId}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> DeleteSet(string setId)
         {
             var userId = GetCurrentUserId();
@@ -60,7 +90,7 @@ namespace SimplyTrack.Api.Controllers
 
         private string? GetCurrentUserId()
         {
-            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
         }
     }
 }

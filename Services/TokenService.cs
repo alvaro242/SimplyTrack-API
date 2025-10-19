@@ -39,8 +39,21 @@ namespace SimplyTrack.Api.Services
 
         public string GenerateAccessToken(ApplicationUser user)
         {
-            var jwtSettings = _config.GetSection("Jwt");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
+            // Use same pattern as Program.cs - environment variables override appsettings.json
+            string jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? _config["Jwt:Key"];
+            string jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? _config["Jwt:Issuer"];
+            string jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? _config["Jwt:Audience"];
+            string accessTokenMinutesStr = Environment.GetEnvironmentVariable("ACCESS_TOKEN_EXPIRATION_MINUTES") ?? _config["Jwt:AccessTokenExpirationMinutes"];
+
+            if (string.IsNullOrEmpty(jwtKey))
+            {
+                throw new InvalidOperationException("JWT_KEY must be provided via environment variable or appsettings.json.");
+            }
+
+            if (!double.TryParse(accessTokenMinutesStr, out var accessTokenMinutes))
+                accessTokenMinutes = 15;
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var claims = new List<Claim>
@@ -56,9 +69,9 @@ namespace SimplyTrack.Api.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = identityClaims,
-                Expires = DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["AccessTokenExpirationMinutes"])),
-                Issuer = jwtSettings["Issuer"],
-                Audience = jwtSettings["Audience"],
+                Expires = DateTime.UtcNow.AddMinutes(accessTokenMinutes),
+                Issuer = jwtIssuer,
+                Audience = jwtAudience,
                 SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature)
             };
 

@@ -1,0 +1,293 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SimplyTrackAPI</name>
+    </assembly>
+    <members>
+        <member name="T:SimplyTrack.Api.Controllers.AuthController">
+            <summary>
+            Authentication controller for user registration, login, token refresh, and logout operations
+            </summary>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.AuthController.Register(SimplyTrack.Api.Models.DTOs.RegisterRequestDto)">
+            <summary>
+            Register a new user account
+            </summary>
+            <param name="request">User registration details</param>
+            <returns>Authentication response with access and refresh tokens</returns>
+            <response code="200">User successfully registered and authenticated</response>
+            <response code="400">Invalid input or user already exists</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.AuthController.Login(SimplyTrack.Api.Models.DTOs.LoginRequestDto)">
+            <summary>
+            Authenticate user and obtain access and refresh tokens
+            </summary>
+            <param name="request">User login credentials</param>
+            <returns>Authentication response with access and refresh tokens</returns>
+            <response code="200">User successfully authenticated</response>
+            <response code="400">Invalid input data</response>
+            <response code="401">Invalid credentials</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.AuthController.RefreshToken(SimplyTrack.Api.Models.DTOs.RefreshTokenRequestDto)">
+            <summary>
+            Refresh access token using a valid refresh token
+            </summary>
+            <param name="request">Refresh token request containing the current refresh token</param>
+            <returns>New authentication tokens</returns>
+            <response code="200">Tokens successfully refreshed</response>
+            <response code="400">Invalid or expired refresh token</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.AuthController.Logout(SimplyTrack.Api.Models.DTOs.RefreshTokenRequestDto)">
+            <summary>
+            Logout user and revoke refresh tokens
+            </summary>
+            <param name="request">Optional refresh token to revoke specifically</param>
+            <returns>Success response</returns>
+            <response code="200">Successfully logged out</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+        </member>
+        <member name="T:SimplyTrack.Api.Controllers.DashboardController">
+            <summary>
+            Dashboard controller providing overview data for the fitness tracking application
+            </summary>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.DashboardController.GetDashboardExercises(System.Int32)">
+            <summary>
+            Get dashboard overview of user's exercises with recent session data
+            </summary>
+            <param name="limit">Maximum number of exercises to return (default: 100)</param>
+            <returns>List of exercises with dashboard summary information</returns>
+            <response code="200">Dashboard exercises retrieved successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+        </member>
+        <member name="T:SimplyTrack.Api.Controllers.ExercisesController">
+            <summary>
+            Exercise management controller for CRUD operations on fitness exercises
+            </summary>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.ExercisesController.GetExercises(System.String,System.Boolean)">
+            <summary>
+            Get all exercises for the current user with optional search and session data
+            </summary>
+            <param name="q">Optional search query to filter exercises by name</param>
+            <param name="includeLastSession">Include information about the last workout session</param>
+            <returns>List of user's exercises</returns>
+            <response code="200">Exercises retrieved successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.ExercisesController.CreateExercise(SimplyTrack.Api.Models.DTOs.CreateExerciseRequestDto)">
+            <summary>
+            Create a new exercise for the current user
+            </summary>
+            <param name="request">Exercise creation data</param>
+            <returns>Created exercise details</returns>
+            <response code="201">Exercise created successfully</response>
+            <response code="400">Invalid input data</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.ExercisesController.GetExercise(System.String)">
+            <summary>
+            Get detailed information about a specific exercise
+            </summary>
+            <param name="exerciseId">The unique identifier of the exercise</param>
+            <returns>Detailed exercise information</returns>
+            <response code="200">Exercise details retrieved successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Exercise not found or doesn't belong to current user</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.ExercisesController.UpdateExercise(System.String,SimplyTrack.Api.Models.DTOs.UpdateExerciseDto)">
+            <summary>
+            Update an existing exercise
+            </summary>
+            <param name="exerciseId">The unique identifier of the exercise to update</param>
+            <param name="request">Exercise update data</param>
+            <returns>Updated exercise details</returns>
+            <response code="200">Exercise updated successfully</response>
+            <response code="400">Invalid input data</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Exercise not found or doesn't belong to current user</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.ExercisesController.DeleteExercise(System.String)">
+            <summary>
+            Delete an exercise and all its associated workout sessions
+            </summary>
+            <param name="exerciseId">The unique identifier of the exercise to delete</param>
+            <returns>No content on successful deletion</returns>
+            <response code="204">Exercise deleted successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Exercise not found or doesn't belong to current user</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.ExercisesController.GetExerciseHistory(System.String,System.Int32,System.Int32)">
+            <summary>
+            Get workout history for a specific exercise
+            </summary>
+            <param name="exerciseId">The unique identifier of the exercise</param>
+            <param name="limit">Maximum number of sessions to return (default: 100)</param>
+            <param name="offset">Number of sessions to skip for pagination (default: 0)</param>
+            <returns>List of workout sessions for the exercise</returns>
+            <response code="200">Exercise history retrieved successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+        </member>
+        <member name="T:SimplyTrack.Api.Controllers.SessionsController">
+            <summary>
+            Session management controller for workout session operations
+            </summary>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.SessionsController.CreateSession(System.String,SimplyTrack.Api.Models.DTOs.CreateSessionRequestDto)">
+            <summary>
+            Create a new workout session for an exercise
+            </summary>
+            <param name="exerciseId">The unique identifier of the exercise</param>
+            <param name="request">Optional session creation data (uses defaults if not provided)</param>
+            <returns>Created session details</returns>
+            <response code="201">Session created successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Exercise not found or doesn't belong to current user</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.SessionsController.GetExerciseSessions(System.String,System.Int32,System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Get all workout sessions for a specific exercise
+            </summary>
+            <param name="exerciseId">The unique identifier of the exercise</param>
+            <param name="limit">Maximum number of sessions to return (default: 50)</param>
+            <param name="offset">Number of sessions to skip for pagination (default: 0)</param>
+            <param name="from">Start date filter (optional)</param>
+            <param name="to">End date filter (optional)</param>
+            <returns>List of workout sessions</returns>
+            <response code="200">Sessions retrieved successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.SessionsController.GetSession(System.String)">
+            <summary>
+            Get detailed information about a specific workout session
+            </summary>
+            <param name="sessionId">The unique identifier of the session</param>
+            <returns>Detailed session information including all sets</returns>
+            <response code="200">Session details retrieved successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Session not found or doesn't belong to current user</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.SessionsController.DeleteSession(System.String)">
+            <summary>
+            Delete a workout session and all its sets
+            </summary>
+            <param name="sessionId">The unique identifier of the session to delete</param>
+            <returns>No content on successful deletion</returns>
+            <response code="204">Session deleted successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Session not found or doesn't belong to current user</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.SessionsController.CreateSet(System.String,SimplyTrack.Api.Models.DTOs.CreateSetRequestDto)">
+            <summary>
+            Add a new set to a workout session
+            </summary>
+            <param name="sessionId">The unique identifier of the session</param>
+            <param name="request">Set creation data including reps, weight, and order</param>
+            <returns>Created set details</returns>
+            <response code="201">Set created successfully</response>
+            <response code="400">Invalid input data</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Session not found or doesn't belong to current user</response>
+        </member>
+        <member name="T:SimplyTrack.Api.Controllers.SetsController">
+            <summary>
+            Set management controller for individual exercise set operations
+            </summary>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.SetsController.UpdateSet(System.String,SimplyTrack.Api.Models.DTOs.UpdateSetDto)">
+            <summary>
+            Update an existing exercise set
+            </summary>
+            <param name="setId">The unique identifier of the set to update</param>
+            <param name="request">Set update data including reps, weight, and order</param>
+            <returns>Updated set details</returns>
+            <response code="200">Set updated successfully</response>
+            <response code="400">Invalid input data</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Set not found or doesn't belong to current user</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.SetsController.DeleteSet(System.String)">
+            <summary>
+            Delete an exercise set
+            </summary>
+            <param name="setId">The unique identifier of the set to delete</param>
+            <returns>No content on successful deletion</returns>
+            <response code="204">Set deleted successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">Set not found or doesn't belong to current user</response>
+        </member>
+        <member name="T:SimplyTrack.Api.Controllers.UsersController">
+            <summary>
+            User management controller for retrieving and updating user profile information
+            </summary>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.UsersController.GetMe">
+            <summary>
+            Get current user's profile information
+            </summary>
+            <returns>Current user's profile data</returns>
+            <response code="200">User profile retrieved successfully</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">User not found</response>
+        </member>
+        <member name="M:SimplyTrack.Api.Controllers.UsersController.UpdateMe(SimplyTrack.Api.Models.DTOs.UpdateUserDto)">
+            <summary>
+            Update current user's profile information
+            </summary>
+            <param name="request">User profile update data</param>
+            <returns>Updated user profile</returns>
+            <response code="200">User profile updated successfully</response>
+            <response code="400">Invalid input data</response>
+            <response code="401">Unauthorized - invalid or missing access token</response>
+            <response code="404">User not found</response>
+        </member>
+        <member name="T:SimplyTrack.Api.Migrations.InitialCreate">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.InitialCreate.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.InitialCreate.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.InitialCreate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:SimplyTrack.Api.Migrations.AddUserToExercise">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.AddUserToExercise.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.AddUserToExercise.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.AddUserToExercise.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:SimplyTrack.Api.Migrations.FixRefreshTokenNullableFields">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.FixRefreshTokenNullableFields.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.FixRefreshTokenNullableFields.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.FixRefreshTokenNullableFields.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:SimplyTrack.Api.Migrations.FixNavigationPropertiesNullable">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.FixNavigationPropertiesNullable.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.FixNavigationPropertiesNullable.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:SimplyTrack.Api.Migrations.FixNavigationPropertiesNullable.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

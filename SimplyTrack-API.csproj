@@ -7,6 +7,11 @@
     <!-- Friendly assembly & root namespace (no hyphens) -->
     <AssemblyName>SimplyTrackAPI</AssemblyName>
     <RootNamespace>SimplyTrack.Api</RootNamespace>
+    
+    <!-- Generate XML documentation for Swagger -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\Debug\net8.0\SimplyTrack-API.xml</DocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

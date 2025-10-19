@@ -114,3 +114,4 @@ C:\Users\adm_f\Documents\GitHub\SimplyTrack-API\obj\Debug\net8.0\SimplyTrack-API
 C:\Users\adm_f\Documents\GitHub\SimplyTrack-API\obj\Debug\net8.0\ref\SimplyTrackAPI.dll
 C:\Users\adm_f\Documents\GitHub\SimplyTrack-API\bin\Debug\net8.0\DotNetEnv.dll
 C:\Users\adm_f\Documents\GitHub\SimplyTrack-API\bin\Debug\net8.0\Sprache.dll
+C:\Users\adm_f\Documents\GitHub\SimplyTrack-API\bin\Debug\net8.0\SimplyTrack-API.xml
