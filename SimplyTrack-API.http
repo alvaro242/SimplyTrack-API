@@ -1,0 +1,192 @@
+@SimplyTrack_API_HostAddress = http://localhost:5032
+@contentType = application/json
+
+# Variables (will be set from responses)
+@accessToken = 
+@refreshToken = 
+@userId = 
+@exerciseId = 
+@sessionId = 
+@setId = 
+
+### 1. Register a new user
+POST {{SimplyTrack_API_HostAddress}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "password": "SecurePassword123!"
+}
+
+### 2. Login with credentials
+# @name login
+POST {{SimplyTrack_API_HostAddress}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePassword123!"
+}
+
+### 3. Get current user profile
+GET {{SimplyTrack_API_HostAddress}}/api/users/me
+Authorization: Bearer {{accessToken}}
+
+### 4. Update user profile
+PATCH {{SimplyTrack_API_HostAddress}}/api/users/me
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "firstName": "John Updated",
+  "lastName": "Doe Updated"
+}
+
+### 5. Create an exercise
+# @name createExercise
+POST {{SimplyTrack_API_HostAddress}}/api/exercises
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Bench Press",
+  "notes": "Chest exercise with barbell"
+}
+
+### 6. Get all exercises (dashboard view)
+GET {{SimplyTrack_API_HostAddress}}/api/exercises?includeLastSession=true
+Authorization: Bearer {{accessToken}}
+
+### 7. Get specific exercise details
+GET {{SimplyTrack_API_HostAddress}}/api/exercises/{{exerciseId}}
+Authorization: Bearer {{accessToken}}
+
+### 8. Update exercise
+PATCH {{SimplyTrack_API_HostAddress}}/api/exercises/{{exerciseId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Incline Bench Press",
+  "notes": "Upper chest exercise with barbell"
+}
+
+### 9. Create a session for today
+# @name createSession
+POST {{SimplyTrack_API_HostAddress}}/api/exercises/{{exerciseId}}/sessions
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "date": "2025-10-19"
+}
+
+### 10. Get sessions for an exercise
+GET {{SimplyTrack_API_HostAddress}}/api/exercises/{{exerciseId}}/sessions?limit=10
+Authorization: Bearer {{accessToken}}
+
+### 11. Get session details with sets
+GET {{SimplyTrack_API_HostAddress}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{accessToken}}
+
+### 12. Add a set to the session
+# @name createSet
+POST {{SimplyTrack_API_HostAddress}}/api/sessions/{{sessionId}}/sets
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reps": 10,
+  "weight": 80.0,
+  "clientId": "set-1-client-id"
+}
+
+### 13. Add another set
+POST {{SimplyTrack_API_HostAddress}}/api/sessions/{{sessionId}}/sets
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reps": 8,
+  "weight": 85.0,
+  "clientId": "set-2-client-id"
+}
+
+### 14. Add final set
+POST {{SimplyTrack_API_HostAddress}}/api/sessions/{{sessionId}}/sets
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reps": 6,
+  "weight": 90.0,
+  "clientId": "set-3-client-id"
+}
+
+### 15. Update a set
+PATCH {{SimplyTrack_API_HostAddress}}/api/sets/{{setId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "reps": 12,
+  "weight": 75.0
+}
+
+### 16. Get updated session details (should show recalculated totals)
+GET {{SimplyTrack_API_HostAddress}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{accessToken}}
+
+### 17. Dashboard - Get exercises with last session summary
+GET {{SimplyTrack_API_HostAddress}}/api/dashboard/exercises?limit=50
+Authorization: Bearer {{accessToken}}
+
+### 18. Search exercises
+GET {{SimplyTrack_API_HostAddress}}/api/exercises?q=bench&includeLastSession=true
+Authorization: Bearer {{accessToken}}
+
+### 19. Get exercise history
+GET {{SimplyTrack_API_HostAddress}}/api/exercises/{{exerciseId}}/history?limit=10
+Authorization: Bearer {{accessToken}}
+
+### 20. Refresh access token
+POST {{SimplyTrack_API_HostAddress}}/api/auth/refresh
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 21. Logout (revoke refresh token)
+POST {{SimplyTrack_API_HostAddress}}/api/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 22. Test unauthorized access (should fail)
+GET {{SimplyTrack_API_HostAddress}}/api/exercises
+# No Authorization header
+
+### 23. Delete a set
+DELETE {{SimplyTrack_API_HostAddress}}/api/sets/{{setId}}
+Authorization: Bearer {{accessToken}}
+
+### 24. Delete a session
+DELETE {{SimplyTrack_API_HostAddress}}/api/sessions/{{sessionId}}
+Authorization: Bearer {{accessToken}}
+
+### 25. Delete an exercise
+DELETE {{SimplyTrack_API_HostAddress}}/api/exercises/{{exerciseId}}
+Authorization: Bearer {{accessToken}}
+
+### 26. Delete user account
+DELETE {{SimplyTrack_API_HostAddress}}/api/users/me
+Authorization: Bearer {{accessToken}}
+
+### Health Check / Test Server
+GET {{SimplyTrack_API_HostAddress}}/swagger
