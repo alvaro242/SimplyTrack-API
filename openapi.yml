@@ -1,0 +1,783 @@
+openapi: 3.0.3
+info:
+  title: Gym Rep Tracker API
+  description: |
+    Minimal API for a gym rep tracker mobile app (React Native / Expo).
+    - Users can register/login/logout/delete account.
+    - Users create exercises. Each exercise can have sessions (default date = today).
+    - Sessions contain sets (reps + weight). Server computes simple totals per session.
+    - Dashboard endpoint returns exercises with last-session summary for quick overview.
+  version: "1.0.0"
+servers:
+  - url: https://api.example.com
+    description: Production server (replace with your self‑hosted URL)
+  - url: http://localhost:5000
+    description: Local development (Docker / ASP.NET Core)
+tags:
+  - name: auth
+    description: Authentication (register / login / logout)
+  - name: users
+    description: User profile and account management
+  - name: exercises
+    description: Exercise CRUD and listings
+  - name: sessions
+    description: Sessions (per-exercise workout occurrences)
+  - name: sets
+    description: Sets inside a session (reps + weight)
+  - name: dashboard
+    description: Aggregated views for UI (last session summary per exercise)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+      example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    Timestamp:
+      type: string
+      format: date-time
+      example: "2025-10-19T18:01:49Z"
+    User:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+        - id
+        - email
+        - firstName
+        - lastName
+    RegisterRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required:
+        - firstName
+        - lastName
+        - email
+        - password
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required:
+        - email
+        - password
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - accessToken
+        - user
+    Exercise:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        userId:
+          $ref: '#/components/schemas/UUID'
+          description: User owner (nullable for shared/global templates)
+        name:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+        - id
+        - name
+        - createdAt
+    CreateExerciseRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+      required:
+        - name
+    Session:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        exerciseId:
+          $ref: '#/components/schemas/UUID'
+        date:
+          type: string
+          format: date
+          description: "Session date (YYYY-MM-DD). If omitted on create, server uses today."
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+        totalWeight:
+          type: number
+          format: float
+          description: "Sum of (weight * reps) for sets in this session"
+        totalReps:
+          type: integer
+        setsCount:
+          type: integer
+      required:
+        - id
+        - exerciseId
+        - date
+    CreateSessionRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          description: "Optional. If omitted server will use today's date in server timezone."
+    Set:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        sessionId:
+          $ref: '#/components/schemas/UUID'
+        reps:
+          type: integer
+          minimum: 1
+        weight:
+          type: number
+          format: float
+          description: "Weight in kilos (kg). Use 0 for bodyweight or unweighted sets."
+        createdAt:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+        - id
+        - sessionId
+        - reps
+        - weight
+    CreateSetRequest:
+      type: object
+      properties:
+        reps:
+          type: integer
+          minimum: 1
+        weight:
+          type: number
+          format: float
+        clientId:
+          type: string
+          description: "Optional device-generated id to help dedupe when offline syncing"
+      required:
+        - reps
+        - weight
+    ExerciseDashboardItem:
+      type: object
+      properties:
+        exercise:
+          $ref: '#/components/schemas/Exercise'
+        lastSession:
+          type: object
+          properties:
+            sessionId:
+              $ref: '#/components/schemas/UUID'
+            date:
+              type: string
+              format: date
+            totalWeight:
+              type: number
+            totalReps:
+              type: integer
+            setsCount:
+              type: integer
+          nullable: true
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Register a new user
+      requestBody:
+        description: New user data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Created - returns auth tokens and user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Returns access and refresh tokens plus user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags:
+        - auth
+      summary: Logout (invalidate refresh token)
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Logged out
+        '401':
+          description: Unauthorized
+
+  /users/me:
+    get:
+      tags:
+        - users
+      summary: Get current user's profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+    patch:
+      tags:
+        - users
+      summary: Update current user's profile (name, last name)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+              additionalProperties: false
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+    delete:
+      tags:
+        - users
+      summary: Delete current user's account
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Account deleted
+        '401':
+          description: Unauthorized
+
+  /exercises:
+    get:
+      tags:
+        - exercises
+      summary: List exercises for current user (optionally include last session summary)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: "Optional search query for exercise name"
+        - in: query
+          name: includeLastSession
+          schema:
+            type: boolean
+            default: true
+          description: "If true, each exercise includes brief last-session summary (for dashboard)"
+      responses:
+        '200':
+          description: Array of exercises (optionally with last session)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExerciseDashboardItem'
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - exercises
+      summary: Create a new exercise
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExerciseRequest'
+      responses:
+        '201':
+          description: Created exercise
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exercise'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /exercises/{exerciseId}:
+    parameters:
+      - in: path
+        name: exerciseId
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+    get:
+      tags:
+        - exercises
+      summary: Get exercise details (metadata + optional stats)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Exercise detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exercise:
+                    $ref: '#/components/schemas/Exercise'
+                  sessionsCount:
+                    type: integer
+                  lastSession:
+                    $ref: '#/components/schemas/Session'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+    patch:
+      tags:
+        - exercises
+      summary: Update exercise metadata (name, notes)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Updated exercise
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exercise'
+    delete:
+      tags:
+        - exercises
+      summary: Delete an exercise and its sessions/sets
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+
+  /exercises/{exerciseId}/sessions:
+    parameters:
+      - in: path
+        name: exerciseId
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+    post:
+      tags:
+        - sessions
+      summary: Create a new session for an exercise (defaults date to today)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          description: Validation error
+    get:
+      tags:
+        - sessions
+      summary: List sessions for an exercise (history)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: from
+          description: "Optional start date (YYYY-MM-DD)"
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          description: "Optional end date (YYYY-MM-DD)"
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of sessions (each contains summary totals)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+
+  /sessions/{sessionId}:
+    parameters:
+      - in: path
+        name: sessionId
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+    get:
+      tags:
+        - sessions
+      summary: Get session detail including sets and totals
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Session with sets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: '#/components/schemas/Session'
+                  sets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Set'
+        '404':
+          description: Not found
+    delete:
+      tags:
+        - sessions
+      summary: Delete a session (and its sets)
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          description: Unauthorized
+
+  /sessions/{sessionId}/sets:
+    parameters:
+      - in: path
+        name: sessionId
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+    post:
+      tags:
+        - sets
+      summary: Add a set to a session (reps + weight)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSetRequest'
+      responses:
+        '201':
+          description: Created set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Set'
+        '400':
+          description: Validation error
+
+  /sets/{setId}:
+    parameters:
+      - in: path
+        name: setId
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+    patch:
+      tags:
+        - sets
+      summary: Update a set (reps/weight)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reps:
+                  type: integer
+                  minimum: 1
+                weight:
+                  type: number
+              additionalProperties: false
+      responses:
+        '200':
+          description: Updated set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Set'
+        '404':
+          description: Not found
+    delete:
+      tags:
+        - sets
+      summary: Delete a set
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+
+  /exercises/{exerciseId}/history:
+    parameters:
+      - in: path
+        name: exerciseId
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+    get:
+      tags:
+        - exercises
+      summary: Return historical sessions for an exercise with full sets (for detailed history screen)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Array of sessions with sets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    session:
+                      $ref: '#/components/schemas/Session'
+                    sets:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Set'
+        '404':
+          description: Not found
+
+  /dashboard/exercises:
+    get:
+      tags:
+        - dashboard
+      summary: Dashboard view - list exercises with last session summary (for main app list)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Exercise dashboard items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExerciseDashboardItem'
+        '401':
+          description: Unauthorized
+
+  /sync/upload:
+    post:
+      tags:
+        - sessions
+      summary: (Optional) Bulk upload for offline clients - accepts changes and returns applied items and conflicts
+      description: |
+        Simple bulk upload endpoint for offline clients. Each change should include entity, client-generated id, and payload.
+        Conflict resolution isn't defined in detail here; a minimal implementation can use last-write-wins using client timestamps.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                changes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      entity:
+                        type: string
+                        description: "e.g. 'set' | 'session' | 'exercise'"
+                      clientId:
+                        type: string
+                      operation:
+                        type: string
+                        enum: [create, update, delete]
+                      payload:
+                        type: object
+              required:
+                - changes
+      responses:
+        '200':
+          description: Applied items and potential conflicts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applied:
+                    type: array
+                    items:
+                      type: object
+                      description: "Server authoritative items (id, clientId, entity)"
+                  conflicts:
+                    type: array
+                    items:
+                      type: object
+                      description: "Conflict info for client to reconcile"
+        '400':
+          description: Validation error
+
+externalDocs:
+  description: "Notes / implementation guidance"
+  url: "https://example.com/docs/gym-rep-tracker-api-notes"
