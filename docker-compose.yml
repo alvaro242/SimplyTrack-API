@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # SimplyTrack API service
+  simplytrack-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simplytrack-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # Map container port 8080 to host port 8080
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      # Database connection (use service name 'db')
+      - DB_HOST=192.168.0.222
+      - DB_PORT=3306
+      - DB_NAME=simplytrack
+      - DB_USER=root
+      - DB_PASS=${DB_PASSWORD}
+      # JWT Configuration (use secrets in production)
+      - JWT_KEY=${JWT_KEY}
+      - JWT_ISSUER=SimplyTrack
+      - JWT_AUDIENCE=SimplyTrackClient
+      - ACCESS_TOKEN_EXPIRATION_MINUTES=120
+      - REFRESH_TOKEN_DAYS=90
+    networks:
+      - simplytrack-network
+
+ 
+
+# Network for service communication
+networks:
+  simplytrack-network:
+    driver: bridge
