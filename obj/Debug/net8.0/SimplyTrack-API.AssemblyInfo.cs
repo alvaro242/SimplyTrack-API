@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SimplyTrackAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fb7a1265edb2654de82c912736845cc040f3aad0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+390ee290ec3d1f319cbfd9a4ffff112af39d8921")]
 [assembly: System.Reflection.AssemblyProductAttribute("SimplyTrackAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SimplyTrackAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
